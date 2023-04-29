@@ -1,6 +1,5 @@
 package pl.aleh.controllers;
 
-import pl.aleh.util.PersonValidator;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -13,8 +12,9 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import pl.aleh.service.PersonService;
 import pl.aleh.models.Person;
+import pl.aleh.service.PersonService;
+import pl.aleh.util.PersonValidator;
 
 @Controller
 @RequestMapping("/people")
@@ -31,13 +31,13 @@ public class PeopleController {
 
   @GetMapping()
   public String index(Model model) {
-    model.addAttribute("people", personService.index());
+    model.addAttribute("people", personService.findAll());
     return "people/index";
   }
 
   @GetMapping("/{id}")
   public String show(@PathVariable("id") int id, Model model) {
-    model.addAttribute("person", personService.show(id));
+    model.addAttribute("person", personService.findOne(id));
     model.addAttribute("books", personService.getBooksByPersonId(id));
 
     return "people/show";
@@ -65,7 +65,7 @@ public class PeopleController {
 
   @GetMapping("/{id}/edit")
   public String edit(Model model, @PathVariable("id") int id) {
-    model.addAttribute("person", personService.show(id));
+    model.addAttribute("person", personService.findOne(id));
     return "people/edit";
   }
 

@@ -3,60 +3,57 @@ package pl.aleh.models;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+import java.util.Date;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import javax.persistence.Transient;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "Book")
 public class Book {
-    private int id;
 
-    @NotEmpty(message = "Book title cannot be empty")
-    @Size(min = 2, max = 30, message = "Book title must be between 2 and 30 characters")
-    private String title;
+  @Id
+  @Column(name = "id")
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private int id;
 
-    @NotEmpty(message = "Author cannot be empty")
-    @Size(min = 2, max = 30, message = "The author's name must be between 2 and 30 characters")
-    private String author;
+  @NotEmpty(message = "Book title cannot be empty")
+  @Size(min = 2, max = 30, message = "Book title must be between 2 and 30 characters")
+  private String title;
 
-    @Min(value = 1500, message = "Year must be greater than 1500")
-    private int year;
+  @NotEmpty(message = "Author cannot be empty")
+  @Size(min = 2, max = 30, message = "The author's name must be between 2 and 30 characters")
+  private String author;
 
-    public Book() {
+  @Min(value = 1500, message = "Year must be greater than 1500")
+  private int year;
 
-    }
+  @ManyToOne
+  @JoinColumn(name = "person_id", referencedColumnName = "id")
+  private Person owner;
 
-    public Book(String title, String author, int year) {
-        this.title = title;
-        this.author = author;
-        this.year = year;
-    }
 
-    public int getId() {
-        return id;
-    }
+  @Column(name = "taken_at")
+  @Temporal(TemporalType.TIMESTAMP)
+  private Date takenAt;
 
-    public void setId(int id) {
-        this.id = id;
-    }
+  @Transient
+  private boolean expired;
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public void setAuthor(String author) {
-        this.author = author;
-    }
-
-    public int getYear() {
-        return year;
-    }
-
-    public void setYear(int year) {
-        this.year = year;
-    }
 }

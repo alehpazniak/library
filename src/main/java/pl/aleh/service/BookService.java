@@ -1,58 +1,94 @@
 package pl.aleh.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import pl.aleh.models.Book;
 import pl.aleh.models.Person;
+import pl.aleh.repositories.BookRepository;
 
 @Component
 public class BookService {
 
-  private final JdbcTemplate jdbcTemplate;
+  private final BookRepository bookRepository;
 
   @Autowired
-  public BookService(JdbcTemplate jdbcTemplate) {
-    this.jdbcTemplate = jdbcTemplate;
+  public BookService(BookRepository bookRepository) {
+    this.bookRepository = bookRepository;
   }
 
-  public List<Book> index() {
-    return jdbcTemplate.query("SELECT * FROM Book", new BeanPropertyRowMapper<>(Book.class));
+  public List<Book> findAll(boolean sortByYear) {
+    if (sortByYear) {
+      return bookRepository.findAll(Sort.by("year"));
+    } else {
+      return bookRepository.findAll();
+    }
   }
 
-  public Book show(int id) {
-    return jdbcTemplate.query("SELECT * FROM Book WHERE id=?", new BeanPropertyRowMapper<>(Book.class), new Object[]{id})
-        .stream().findFirst().orElse(null);
+  public List<Book> findWithPagination(Integer page, Integer booksPerPage, boolean sortByYear) {
+    if (sortByYear) {
+      return bookRepository.findAll(PageRequest.of(page, booksPerPage, Sort.by("year"))).getContent();
+    } else {
+      return bookRepository.findAll(PageRequest.of(page, booksPerPage)).getContent();
+    }
   }
 
+  public Book findOne(int id) {
+    Optional<Book> foundBook = bookRepository.findById(id);
+    return foundBook.orElse(null);
+  }
+
+  public List<Book> searchByTitle(String query) {
+    return bookRepository.findByTitleStartingWith(query);
+  }
+
+  @Transactional
   public void save(Book book) {
-    jdbcTemplate.update("INSERT INTO Book(title, author, year) VALUES(?, ?, ?)", book.getTitle(),
-        book.getAuthor(), book.getYear());
+    bookRepository.save(book);
   }
 
-  public void update(int id, Book book) {
-    jdbcTemplate.update("UPDATE Book SET title=?, author=?, year=? WHERE id=?", book.getTitle(), book.getAuthor(),
-        book.getYear(), id);
+  @Transactional
+  public void update(int id, Book updatedBook) {
+    Book bookToBeUpdated = bookRepository.findById(id).get();
+
+    updatedBook.setId(id);
+    updatedBook.setOwner(bookToBeUpdated.getOwner()); // чтобы не терялась связь при обновлении
+
+    bookRepository.save(updatedBook);
   }
 
+  @Transactional
   public void delete(int id) {
-    jdbcTemplate.update("DELETE FROM Book WHERE id=?", id);
+    bookRepository.deleteById(id);
   }
 
-  public Optional<Person> getBookOwner(int id) {
-    return jdbcTemplate.query("SELECT Person.* FROM Book JOIN Person ON Book.person_id = Person.id WHERE Book.id = ?",
-        new BeanPropertyRowMapper<>(Person.class), new Object[]{id}).stream().findFirst();
+  public Person getBookOwner(int id) {
+    // Здесь Hibernate.initialize() не нужен, так как владелец (сторона One) загружается не лениво
+    return bookRepository.findById(id).map(Book::getOwner).orElse(null);
   }
 
+  @Transactional
   public void release(int id) {
-    jdbcTemplate.update("UPDATE Book SET person_id=NULL WHERE id=?", id);
+    bookRepository.findById(id).ifPresent(
+        book -> {
+          book.setOwner(null);
+          book.setTakenAt(null);
+        });
   }
 
-  public void assign(int id, Person person) {
-    jdbcTemplate.update("UPDATE Book SET person_id=? WHERE id=?", person.getId(), id);
+  @Transactional
+  public void assign(int id, Person selectedPerson) {
+    bookRepository.findById(id).ifPresent(
+        book -> {
+          book.setOwner(selectedPerson);
+          book.setTakenAt(new Date()); // текущее время
+        }
+    );
   }
 
 }
